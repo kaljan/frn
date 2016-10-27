@@ -91,8 +91,6 @@ int main (int argc, char **argv)
 				printf("prepare_new_file_name(fname, &fname2) failed with error %d\n", ret);
 			}
 			printf("New file name: %s\n", fname2);
-
-			
 		}
 	}
 	return 0;

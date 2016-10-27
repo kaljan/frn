@@ -26,6 +26,276 @@ const char translit_array[33][5] = {
 
 /*
  --------------------------------------------------------------------
+ Эта функция выдаёт номер ячейки в массиве для транслитерации
+
+ --------------------------------------------------------------------
+ */
+cfname_error get_cyrrinic_num(char * str)
+{
+	uint8_t *strptr;
+	uint16_t chn;
+	
+	if (str == 0) {
+		return CFN_BAD_PINTER;
+	}
+	strptr = (uint8_t*)str;
+	if ((*strptr == 0xD0) || (*strptr == 0xD1)) {
+
+		chn = ((uint16_t)(*strptr));
+		chn = (chn << 8) | ((uint16_t)(*(strptr + 1) & 0xFF));
+
+		if (chn >= 0xD090 && chn < 0xD0B0) {
+			chn -= 0xD090;
+		} else if (chn >= 0xD0B0 && chn <= 0xD0BF) {
+			chn -= 0xD0B0;
+		} else if (chn >= 0xD180 && chn <= 0xD18F) {
+			chn -= 0xD180;
+			chn += 16;
+		} else if (chn == 0xD001 || chn == 0xD191) {
+			chn = 32;
+		}
+		return ((int)chn);
+
+	}
+	
+	return CFN_BAD_STRING;
+}
+
+/*
+ --------------------------------------------------------------------
+ Эта функция проверяет нужна ли транслитерация
+
+ В случае если нужна транслитерация, фукнция вернёт новый размер
+ имени.
+
+ Если транслитерация не нужна, функция вернёт 0
+
+ И если произошли какая-то ошибка функция вернёт отрицательное
+ значение
+
+ --------------------------------------------------------------------
+ */
+int is_translit_need(char *fname)
+{
+	char *strptr;
+	int newsize = 0, nc = 0, c;
+
+	if (fname == 0) {
+		return (int)CFN_BAD_PINTER;
+	}
+
+	if (strlen(fname) < 1) {
+		return (int)CFN_BAD_STRING;
+	}
+
+	// вычисляем новый размер строки, и за одно проверяем есть ли в ней кирилица
+	strptr = fname;
+
+	while (*strptr != 0) {
+		c = get_cyrrinic_num(strptr);
+
+		if ((c >= 0) && (c <= 32)) {
+			strptr++;
+			newsize += strlen(&translit_array[c][0]);
+			nc++;
+		} else {
+			newsize++;
+		}
+
+		strptr++;
+	}
+
+	if (nc == 0) {
+		return (int)CFN_NOERROR;
+	}
+
+	return newsize + 1;
+}
+
+/*
+ --------------------------------------------------------------------
+ Транслитерация имени файла
+
+ --------------------------------------------------------------------
+ */
+cfname_error translit_utf8(char *fname, char *trfname)
+{
+	char *fnameptr, *trfnameptr;
+	int c;
+
+	if (fname == 0) {
+		return CFN_BAD_PINTER;
+	}
+
+	if (strlen(fname) < 1) {
+		return CFN_BAD_STRING;
+	}
+
+	if (trfname == 0) {
+		return CFN_BAD_PINTER;
+	}
+
+	fnameptr = fname;
+	trfnameptr = trfname;
+	while (*fnameptr != 0) {
+		c = get_cyrrinic_num(fnameptr);
+		if ((c >= 0) && (c <= 32)) {
+			fnameptr++;
+			if (strlen(&translit_array[c][0]) == 0) {
+				fnameptr++;
+				continue;
+			}
+			sprintf(trfnameptr, "%s", &translit_array[c][0]);
+			trfnameptr += strlen(&translit_array[c][0]);
+		} else {
+			*trfnameptr = *fnameptr;
+			trfnameptr++;
+		}
+		fnameptr++;
+	}
+	return CFN_NOERROR;
+}
+
+/*
+ --------------------------------------------------------------------
+ Почистим имя файла от лишних символов
+
+ Определим правило именования файлов. В имени файлов должны быть только
+ латинские строчные буквы a-z; цифры 0-9; и символы '_'. Точка должна
+ быть только одна для разделения расширения. В конце имени файла может
+ быть только одно нижнее подчёркивание, в начале не больше двух.
+ 
+ --------------------------------------------------------------------
+ */
+cfname_error replace_symbols(char *fname)
+{
+	char *tmpfname, *fnameptr, *fnameext;
+		
+	if (fname == 0) {
+		return CFN_BAD_PINTER;
+	}
+	
+	if (strlen(fname) == 0) {
+		return CFN_BAD_STRING;
+	}
+	
+	// Создадим новую строку в которой и будем работать
+	tmpfname = malloc(strlen(fname) + 1);
+	if (tmpfname == 0) {
+		return CFN_ALLOC_ERROR;
+	}
+	strcpy(tmpfname, fname);
+	
+	// Сохраним отдельно расширение
+	fnameptr = strrchr(tmpfname, '.');
+	fnameext = malloc(strlen(fnameptr) + 1);
+	if (fnameext == 0) {
+		free(tmpfname);
+		return CFN_ALLOC_ERROR;
+	}
+	strcpy(fnameext, fnameptr);
+	*fnameptr = 0;	// временно завалим расширение
+	
+	// Заменим все левые символы на '_'
+	fnameptr = tmpfname;
+	while (*fnameptr != 0) {
+		if (isalnum(*fnameptr) == 0) {
+			*fnameptr = '_';
+		}
+		fnameptr++;
+	}
+	
+	// Теперь уберём все симолы '_' следующие один за одним и в конце
+	fnameptr = strchr(tmpfname, '_');
+	
+	while (fnameptr != 0) {
+		if (*(fnameptr + 1) == '_') {
+			memmove(fnameptr, fnameptr + 1, strlen(fnameptr + 1) + 1);
+		} else if (*(fnameptr + 1) == '\0') {
+			*fnameptr = 0;
+		} else {
+			fnameptr++;
+		}
+		
+		fnameptr = strchr(fnameptr, '_');
+	}
+	
+	// Теперь преобразуем все символы в нижний регистр
+	fnameptr = tmpfname;
+	while (*fnameptr != 0) {
+		*fnameptr = tolower(*fnameptr);
+		fnameptr++;
+	}
+	
+	// Сформируем новое имя файла
+	if ((strlen(tmpfname) + strlen(fnameext)) > strlen(fname)) {
+		free(tmpfname);
+		free(fnameext);
+		return CFN_BAD_STRING;
+	}
+	
+	sprintf(fname, "%s%s", tmpfname, fnameext);
+	
+	free(tmpfname);
+	free(fnameext);	
+	
+	return CFN_NOERROR;
+}
+
+/*
+ --------------------------------------------------------------------
+ Подготовка нового имени файла
+
+ --------------------------------------------------------------------
+ */
+cfname_error prepare_new_file_name(char *fname, char ** nfname)
+{
+	char *newfname = 0;
+	int len;
+	
+	if (fname == 0) {
+		return CFN_BAD_PINTER;
+	}
+
+	if (strlen(fname) == 0) {
+		return CFN_BAD_STRING;
+	}
+
+	if (nfname == 0) {
+		return CFN_BAD_PINTER;
+	}
+	
+	if (*nfname != 0) {
+		return CFN_BAD_PINTER;
+	}
+	
+	len = is_translit_need(fname);
+
+	if (len < 0) {
+		return len;
+	}
+
+	if (len > 0) {
+		newfname = malloc(len);
+		translit_utf8(fname, newfname);
+	}
+	
+	replace_symbols(newfname);
+	
+	*nfname = malloc(strlen(newfname) + 1);
+	if (*nfname == 0) {
+		free(newfname);
+		return CFN_ALLOC_ERROR;
+	}
+	
+	strcpy(*nfname, newfname);
+	free(newfname);
+	
+	return CFN_NOERROR;
+}
+
+/*
+ --------------------------------------------------------------------
  +---+------+ +---+------+ +---+------+ +---+------+	
  | А | D090 | | Р | D0A0 | | а | D0B0 | | р | D180 | 	
  | Б | D091 | | С | D0A1 | | б | D0B1 | | с | D181 | 	
@@ -54,274 +324,3 @@ const char translit_array[33][5] = {
 
  --------------------------------------------------------------------
  */
-int get_cyrrinic_num(char * str)
-{
-	uint8_t *strptr;
-	uint16_t chn;
-	
-	if (str == 0) {
-		return -2;
-	}
-	strptr = (uint8_t*)str;
-	if ((*strptr == 0xD0) || (*strptr == 0xD1)) {
-
-		chn = ((uint16_t)(*strptr));
-		chn = (chn << 8) | ((uint16_t)(*(strptr + 1) & 0xFF));
-
-		if (chn >= 0xD090 && chn < 0xD0B0) {
-			chn -= 0xD090;
-		} else if (chn >= 0xD0B0 && chn <= 0xD0BF) {
-			chn -= 0xD0B0;
-		} else if (chn >= 0xD180 && chn <= 0xD18F) {
-			chn -= 0xD180;
-			chn += 16;
-		} else if (chn == 0xD001 || chn == 0xD191) {
-			chn = 32;
-		}
-		return ((int)chn);
-
-	}
-	
-	return -1;
-}
-
-/*
- --------------------------------------------------------------------
- Эта функция проверяет нужна ли транслитерация
-
- В случае если нужна транслитерация, фукнция вернёт новый размер
- имени.
-
- Если транслитерация не нужна, функция вернёт 0
-
- И если произошли какая-то ошибка функция вернёт отрицательное
- значение
-
- --------------------------------------------------------------------
- */
-int is_translit_need(char *fname)
-{
-	char *strptr;
-	int newsize = 0, nc = 0, c;
-
-	if (fname == 0) {
-		return -1;
-	}
-
-	if (strlen(fname) < 1) {
-		return -2;
-	}
-
-	// вычисляем новый размер строки, и за одно проверяем есть ли в ней кирилица
-	strptr = fname;
-
-	while (*strptr != 0) {
-		c = get_cyrrinic_num(strptr);
-
-		if ((c >= 0) && (c <= 32)) {
-			strptr++;
-			newsize += strlen(&translit_array[c][0]);
-			nc++;
-		} else {
-			newsize++;
-		}
-
-		strptr++;
-	}
-
-	if (nc == 0) {
-		return 0;
-	}
-
-	return newsize + 1;
-}
-
-/*
- --------------------------------------------------------------------
- Транслитерация имени файла
-
- --------------------------------------------------------------------
- */
-int translit_utf8(char *fname, char *trfname)
-{
-	char *fnameptr, *trfnameptr;
-	int c;
-
-	if (fname == 0) {
-		return -1;
-	}
-
-	if (strlen(fname) < 1) {
-		return -2;
-	}
-
-	if (trfname == 0) {
-		return -1;
-	}
-
-	fnameptr = fname;
-	trfnameptr = trfname;
-	while (*fnameptr != 0) {
-
-		c = get_cyrrinic_num(fnameptr);
-
-		if ((c >= 0) && (c <= 32)) {
-			fnameptr++;
-			if (strlen(&translit_array[c][0]) == 0) {
-				fnameptr++;
-				continue;
-			}
-			sprintf(trfnameptr, "%s", &translit_array[c][0]);
-			trfnameptr += strlen(&translit_array[c][0]);
-		} else {
-			*trfnameptr = *fnameptr;
-			trfnameptr++;
-		}
-
-		fnameptr++;
-
-	}
-	return 0;
-}
-
-/*
- --------------------------------------------------------------------
- Почистим имя файла от лишних символов
-
- Определим правило именования файлов. В имени файлов должны быть только
- латинские строчные буквы a-z; цифры 0-9; и символы '_'. Точка должна
- быть только одна для разделения расширения. В конце имени файла может
- быть только одно нижнее подчёркивание, в начале не больше двух.
- 
- --------------------------------------------------------------------
- */
-int replace_symbols(char *fname)
-{
-	char *tmpfname, *fnameptr, *fnameext;
-		
-	if (fname == 0) {
-		return -1;
-	}
-	
-	if (strlen(fname) == 0) {
-		return -2;
-	}
-	
-	
-	// Создадим новую строку в которой и будем работать
-	tmpfname = malloc(strlen(fname) + 1);
-	if (tmpfname == 0) {
-		return -3;
-	}
-	strcpy(tmpfname, fname);
-	
-	
-	// Сохраним отдельно расширение
-	fnameptr = strrchr(tmpfname, '.');
-	fnameext = malloc(strlen(fnameptr) + 1);
-	if (fnameext == 0) {
-		free(tmpfname);
-		return -3;
-	}
-	strcpy(fnameext, fnameptr);
-	*fnameptr = 0;	// временно завалим расширение
-	
-	
-	// Заменим все левые символы на '_'
-	fnameptr = tmpfname;
-	while (*fnameptr != 0) {
-		if (isalnum(*fnameptr) == 0) {
-			*fnameptr = '_';
-		}
-		fnameptr++;
-	}
-	
-	
-	// Теперь уберём все симолы '_' следующие один за одним и в конце
-	fnameptr = strchr(tmpfname, '_');
-	
-	while (fnameptr != 0) {
-		if (*(fnameptr + 1) == '_') {
-			memmove(fnameptr, fnameptr + 1, strlen(fnameptr + 1) + 1);
-		} else if (*(fnameptr + 1) == '\0') {
-			*fnameptr = 0;
-		} else {
-			fnameptr++;
-		}
-		
-		fnameptr = strchr(fnameptr, '_');
-	}
-	
-	// Теперь преобразуем все символы в нижний регистр
-	fnameptr = tmpfname;
-	while (*fnameptr != 0) {
-		*fnameptr = tolower(*fnameptr);
-		fnameptr++;
-	}
-	
-	// Сформируем новое имя файла
-	if ((strlen(tmpfname) + strlen(fnameext)) > strlen(fname)) {
-		free(tmpfname);
-		free(fnameext);
-		return -4;
-	}
-	
-	sprintf(fname, "%s%s", tmpfname, fnameext);
-	
-	free(tmpfname);
-	free(fnameext);	
-	
-	return 0;
-}
-
-/*
- --------------------------------------------------------------------
- Подготовка нового имени файла
-
- --------------------------------------------------------------------
- */
-int prepare_new_file_name(char *fname, char ** nfname)
-{
-	char *newfname = 0;
-	int len;
-	
-	if (fname == 0) {
-		return -1;
-	}
-
-	if (strlen(fname) == 0) {
-		return -2;
-	}
-
-	if (nfname == 0) {
-		return -3;
-	}
-	
-	if (*nfname != 0) {
-		return -4;
-	}
-	
-	len = is_translit_need(fname);
-
-	if (len < 0) {
-		return -1;
-	}
-
-	if (len > 0) {
-		newfname = malloc(len);
-		translit_utf8(fname, newfname);
-	}
-	
-	replace_symbols(newfname);
-	
-	*nfname = malloc(strlen(newfname) + 1);
-	if (*nfname == 0) {
-		free(newfname);
-		return -3;
-	}
-	
-	strcpy(*nfname, newfname);
-	free(newfname);
-	
-	return 0;
-}
