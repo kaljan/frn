@@ -21,9 +21,34 @@
 #include <stdlib.h>
 #include <ctype.h>
 
+#include <time.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/time.h>
+#include <sys/statvfs.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
 #include "cfname.h"
 
 // Variables --------------------------------------------------------
+struct timeval t1;
+struct timeval t2;
+double elapsed_time;
+
+/*
+ --------------------------------------------------------------------
+ Подсчёт прошедшего времени
+
+ --------------------------------------------------------------------
+ */
+double get_elapsed_time(struct timeval *tstart, struct timeval *tstop)
+{
+	struct timeval et;
+	et.tv_sec = tstop->tv_sec - tstart->tv_sec;
+	et.tv_usec = tstop->tv_usec - tstart->tv_usec;
+	return (((double)et.tv_sec * (double)1000) + (((double)et.tv_usec) / (double) 1000));
+}
 
 /*
  --------------------------------------------------------------------
@@ -86,7 +111,16 @@ int main (int argc, char **argv)
 		if (fname != 0) {
 			fname++;
 			printf("\nOld file name: %s\n", fname);
+			gettimeofday(&t1, NULL);
 			ret = prepare_new_file_name(fname, &fname2);
+			gettimeofday(&t2, NULL);
+			elapsed_time = get_elapsed_time(&t1,&t2);
+			if (elapsed_time > 1.000) {
+				printf("Elapsed time: %6.3f ms\n", elapsed_time);
+			} else {
+				printf("Elapsed time: %6.3f us\n", elapsed_time * 1000);
+			}
+
 			if (ret != 0) {
 				printf("prepare_new_file_name(fname, &fname2) failed with error %d\n", ret);
 			}

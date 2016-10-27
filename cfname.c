@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <unistd.h>
 
 // Variables --------------------------------------------------------
 /*
@@ -202,6 +203,7 @@ cfname_error replace_symbols(char *fname)
 		if (isalnum(*fnameptr) == 0) {
 			*fnameptr = '_';
 		}
+		*fnameptr = tolower(*fnameptr);
 		fnameptr++;
 	}
 	
@@ -218,13 +220,6 @@ cfname_error replace_symbols(char *fname)
 		}
 		
 		fnameptr = strchr(fnameptr, '_');
-	}
-	
-	// Теперь преобразуем все символы в нижний регистр
-	fnameptr = tmpfname;
-	while (*fnameptr != 0) {
-		*fnameptr = tolower(*fnameptr);
-		fnameptr++;
 	}
 	
 	// Сформируем новое имя файла
@@ -252,7 +247,8 @@ cfname_error prepare_new_file_name(char *fname, char ** nfname)
 {
 	char *newfname = 0;
 	int len;
-	
+	cfname_error err;
+
 	if (fname == 0) {
 		return CFN_BAD_PINTER;
 	}
@@ -264,33 +260,53 @@ cfname_error prepare_new_file_name(char *fname, char ** nfname)
 	if (nfname == 0) {
 		return CFN_BAD_PINTER;
 	}
-	
+
 	if (*nfname != 0) {
 		return CFN_BAD_PINTER;
 	}
-	
-	len = is_translit_need(fname);
 
+	len = is_translit_need(fname);
 	if (len < 0) {
 		return len;
 	}
 
 	if (len > 0) {
 		newfname = malloc(len);
-		translit_utf8(fname, newfname);
+		if (newfname == 0) {
+			return CFN_ALLOC_ERROR;
+		}
+
+		err = translit_utf8(fname, newfname);
+		if (err != CFN_NOERROR) {
+			return err;
+		}
+	} else {
+		newfname = malloc(strlen(fname) + 1);
+		if (newfname == 0) {
+			return CFN_ALLOC_ERROR;
+		}
+
+		strcpy(newfname, fname);
 	}
-	
-	replace_symbols(newfname);
-	
+
+	err = replace_symbols(newfname);
+	if (err != CFN_NOERROR) {
+		if (newfname != 0) {
+			free(newfname);
+		}
+		return err;
+	}
+
 	*nfname = malloc(strlen(newfname) + 1);
+
 	if (*nfname == 0) {
 		free(newfname);
 		return CFN_ALLOC_ERROR;
 	}
-	
+
 	strcpy(*nfname, newfname);
 	free(newfname);
-	
+
 	return CFN_NOERROR;
 }
 
