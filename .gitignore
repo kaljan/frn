@@ -1,0 +1,6 @@
+*.[oa]
+*.user
+frn
+*bak
+Makefile
+*~
