@@ -171,7 +171,9 @@ cfname_error translit_utf8(char *fname, char *trfname)
 cfname_error replace_symbols(char *fname)
 {
 	char *tmpfname, *fnameptr, *fnameext;
-		
+	
+	fnameext = 0;
+	
 	if (fname == 0) {
 		return CFN_BAD_PINTER;
 	}
@@ -189,16 +191,27 @@ cfname_error replace_symbols(char *fname)
 	
 	// Сохраним отдельно расширение
 	fnameptr = strrchr(tmpfname, '.');
-	fnameext = malloc(strlen(fnameptr) + 1);
-	if (fnameext == 0) {
-		free(tmpfname);
-		return CFN_ALLOC_ERROR;
-	}
-	strcpy(fnameext, fnameptr);
-	*fnameptr = 0;	// временно завалим расширение
 	
+	if (fnameptr != 0) {
+		
+		fnameext = malloc(strlen(fnameptr) + 1);
+		if (fnameext == 0) {
+			free(tmpfname);
+			return CFN_ALLOC_ERROR;
+		}
+		strcpy(fnameext, fnameptr);
+		*fnameptr = 0;	// временно завалим расширение
+		
+		// На всякий уменьшим регистр в расширении файла
+		fnameptr = fnameext;
+		while (*fnameptr != 0) {
+			*fnameptr = tolower(*fnameptr);
+			fnameptr++;
+		}
+	}
 	// Заменим все левые символы на '_'
 	fnameptr = tmpfname;
+	
 	while (*fnameptr != 0) {
 		if (isalnum(*fnameptr) == 0) {
 			*fnameptr = '_';
@@ -223,16 +236,21 @@ cfname_error replace_symbols(char *fname)
 	}
 	
 	// Сформируем новое имя файла
-	if ((strlen(tmpfname) + strlen(fnameext)) > strlen(fname)) {
+	
+//	if ((strlen(tmpfname) + strlen(fnameext)) > strlen(fname)) {
+//		free(tmpfname);
+//		free(fnameext);
+//		return CFN_BAD_STRING;
+//	}
+	
+	if (fnameext != 0) {
+		sprintf(fname, "%s%s", tmpfname, fnameext);
 		free(tmpfname);
-		free(fnameext);
-		return CFN_BAD_STRING;
+		free(fnameext);	
+	} else {
+		strcpy(fname, tmpfname);
+		free(tmpfname);
 	}
-	
-	sprintf(fname, "%s%s", tmpfname, fnameext);
-	
-	free(tmpfname);
-	free(fnameext);	
 	
 	return CFN_NOERROR;
 }
@@ -271,6 +289,7 @@ cfname_error prepare_new_file_name(char *fname, char ** nfname)
 	}
 
 	if (len > 0) {
+
 		newfname = malloc(len);
 		if (newfname == 0) {
 			return CFN_ALLOC_ERROR;
@@ -281,6 +300,7 @@ cfname_error prepare_new_file_name(char *fname, char ** nfname)
 			return err;
 		}
 	} else {
+
 		newfname = malloc(strlen(fname) + 1);
 		if (newfname == 0) {
 			return CFN_ALLOC_ERROR;
@@ -290,6 +310,7 @@ cfname_error prepare_new_file_name(char *fname, char ** nfname)
 	}
 
 	err = replace_symbols(newfname);
+
 	if (err != CFN_NOERROR) {
 		if (newfname != 0) {
 			free(newfname);

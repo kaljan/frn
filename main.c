@@ -20,6 +20,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <errno.h>
 
 #include <time.h>
 #include <unistd.h>
@@ -28,6 +29,8 @@
 #include <sys/statvfs.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+
+#include <dirent.h>
 
 #include "cfname.h"
 
@@ -80,6 +83,75 @@ int str_to_hexdump(char *str)
 	return 0;
 }
 
+int dir_work(char *dirname) 
+{
+	DIR *dp;
+	int dfd, ret;
+	struct dirent * de;
+	char fname[256], *nfname;
+	
+	nfname = 0;
+	
+	if (dirname == 0) {
+		printf("Bad directory name\n");
+		return -1;
+	}
+	
+	printf("\nWork with directories!\n\n");
+	
+	printf("Working directory = %s\n", dirname);
+	
+	dp = opendir(dirname);
+	
+	if (dp == 0) {
+		printf("Error opening dir: %s\n", strerror(errno));
+		return -1;	
+	}
+	
+	de = readdir(dp);
+	
+	while (de != 0) {
+		if (strcmp(de->d_name, ".") == 0) {
+			de = readdir(dp);
+			continue;
+		}
+		
+		if (strcmp(de->d_name, "..") == 0) {
+			de = readdir(dp);
+			continue;
+		}
+		
+		strcpy(fname, de->d_name);		
+		printf("Old name: %s\n", fname);
+		ret = prepare_new_file_name(fname, &nfname);
+		if (ret != 0) {
+			printf("Error getting new file name: %d\n", ret);
+			break;
+		}
+		
+		if (nfname == 0) {
+			printf("Error getting new file name\n");
+			break;
+		}
+		
+		printf("New name: %s\n\n", nfname);
+		
+		free(nfname);
+		
+		nfname = 0;
+		de = readdir(dp);
+		
+	}
+	
+	dfd = closedir(dp);
+	if (dfd < 0) {
+		printf("Error close dir: %s\n", strerror(errno));
+		return -1;
+	}
+	
+	return 0;
+}
+
 /*
  --------------------------------------------------------------------
  Нужно сделать простенькую програмку, которая бы переименовывала файлы
@@ -102,30 +174,41 @@ int str_to_hexdump(char *str)
  */
 int main (int argc, char **argv)
 {
-	char * fname;
-	char * fname2 = 0;
-	int ret;
+//	char * fname;
+//	char * fname2 = 0;
+//	int ret;
+	
+	
+	
 	if (argc > 1) {
-		printf("Full path: %s\n", *(argv + 1));
-		fname = strrchr(*(argv + 1), '/');
-		if (fname != 0) {
-			fname++;
-			printf("\nOld file name: %s\n", fname);
-			gettimeofday(&t1, NULL);
-			ret = prepare_new_file_name(fname, &fname2);
-			gettimeofday(&t2, NULL);
-			elapsed_time = get_elapsed_time(&t1,&t2);
-			if (elapsed_time > 1.000) {
-				printf("Elapsed time: %6.3f ms\n", elapsed_time);
-			} else {
-				printf("Elapsed time: %6.3f us\n", elapsed_time * 1000);
-			}
+		dir_work(*(argv + 1));
+//		printf("Full path: %s\n", *(argv + 1));
+//		fname = strrchr(*(argv + 1), '/');
+//		if (fname != 0) {
+//			fname++;
+			
+//			if (*fname == 0) {
+//				fname = *(argv + 1);
+//				dir_work(fname);
+//				return 0;
+//			}
+			
+//			printf("\nOld file name: %s\n", fname);
+//			gettimeofday(&t1, NULL);
+//			ret = prepare_new_file_name(fname, &fname2);
+//			gettimeofday(&t2, NULL);
+//			elapsed_time = get_elapsed_time(&t1,&t2);
+//			if (elapsed_time > 1.000) {
+//				printf("Elapsed time: %6.3f ms\n", elapsed_time);
+//			} else {
+//				printf("Elapsed time: %6.3f us\n", elapsed_time * 1000);
+//			}
 
-			if (ret != 0) {
-				printf("prepare_new_file_name(fname, &fname2) failed with error %d\n", ret);
-			}
-			printf("New file name: %s\n", fname2);
-		}
+//			if (ret != 0) {
+//				printf("prepare_new_file_name(fname, &fname2) failed with error %d\n", ret);
+//			}
+//			printf("New file name: %s\n", fname2);
+//		}
 	}
 	return 0;
 }
@@ -192,3 +275,23 @@ int main (int argc, char **argv)
 
 //	return 0;
 //}
+//	char *cwd;
+	
+//	printf("Get current work dir name\n");
+//	cwd = getcwd(NULL, 0);
+	
+//	if (cwd == 0) {
+//		perror("getcwd");
+//		return -1;
+//	}
+	
+//	printf("cwd = %s\n", cwd);
+
+//dfd = dirfd(dp);
+
+//if (dfd < 0) {
+//	printf("Error getting dir desc: %s\n", strerror(errno));
+//	return 0;
+//}
+
+//printf("Dir descriptor: %d\n", dfd);
