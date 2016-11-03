@@ -358,27 +358,41 @@ cfname_error prepare_new_file_name(char *fname, char ** nfname)
  
  --------------------------------------------------------------------
  */
-int cfname_errno;
+int cfn_errno;
+char f_name[255];
+
+int check_file_name(const char *fname)
+{
+	if (fname == 0) {
+		return -1;
+	}
+
+	if (strlen(fname) == 0) {
+		return -2;
+	}
+	return 0;
+}
+
 char *prepare_new_file_name_v2(const char *fname)
 {
 	char tmpfname[255];
 	int len;
-	cfname_errno = 0;
+	cfn_errno = 0;
 	
 	if (fname == 0) {
-		cfname_errno = -1;
+		cfn_errno = -1;
 		return 0;
 	}
 	
 	len = (int)strlen(fname);
 	
 	if (len == 0 || len > 256) {	
-		cfname_errno = -2;
+		cfn_errno = -2;
 		return 0;
 	}
 	
 	strcpy(tmpfname, fname);
-	
+	return 0;
 }
 
 /*

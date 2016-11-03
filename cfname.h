@@ -11,7 +11,9 @@ typedef enum _t_fnf_error {
 } cfname_error;
 
 // Extern variables -------------------------------------------------
+extern int cfn_errno;
+
 // Prototypes -------------------------------------------------------
 int prepare_new_file_name(char *fname, char ** nfname);
-
+char *prepare_new_file_name_v2(const char *fname);
 #endif // CFNAME_H

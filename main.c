@@ -174,19 +174,29 @@ int dir_work(char *dirname)
  */
 int main (int argc, char **argv)
 {
-//	char * fname;
+	char * fname;
+	char *newfname;
 //	char * fname2 = 0;
 //	int ret;
 	
-	
+//		dir_work(*(argv + 1));
 	
 	if (argc > 1) {
-		dir_work(*(argv + 1));
-//		printf("Full path: %s\n", *(argv + 1));
-//		fname = strrchr(*(argv + 1), '/');
-//		if (fname != 0) {
-//			fname++;
-			
+
+		printf("Full path: %s\n", *(argv + 1));
+		fname = strrchr(*(argv + 1), '/');
+		if (fname != 0) {
+			fname++;
+			printf("\nOld file name: %s\n", fname);
+			newfname = prepare_new_file_name_v2(fname);
+
+			if (newfname == 0 && cfn_errno < 0) {
+				printf("Creating new file name failed: %d\n", cfn_errno);
+				return 0;
+			}
+
+
+		}
 //			if (*fname == 0) {
 //				fname = *(argv + 1);
 //				dir_work(fname);
