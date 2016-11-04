@@ -15,5 +15,5 @@ extern int cfn_errno;
 
 // Prototypes -------------------------------------------------------
 int prepare_new_file_name(char *fname, char ** nfname);
-char *prepare_new_file_name_v2(const char *fname);
+char *prepare_new_file_name_v2(const char *fname, char ftype);
 #endif // CFNAME_H

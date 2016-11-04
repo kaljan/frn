@@ -183,18 +183,18 @@ int main (int argc, char **argv)
 	
 	if (argc > 1) {
 
-		printf("Full path: %s\n", *(argv + 1));
+		printf("\nFull path: %s\n", *(argv + 1));
 		fname = strrchr(*(argv + 1), '/');
 		if (fname != 0) {
 			fname++;
-			printf("\nOld file name: %s\n", fname);
-			newfname = prepare_new_file_name_v2(fname);
+			printf("Old file name: %s\n", fname);
+			newfname = prepare_new_file_name_v2(fname, 0);
 
 			if (newfname == 0 && cfn_errno < 0) {
-				printf("Creating new file name failed: %d\n", cfn_errno);
+				printf("Creating new file name failed: %d\n\n", cfn_errno);
 				return 0;
 			}
-
+			printf("\n");
 
 		}
 //			if (*fname == 0) {
