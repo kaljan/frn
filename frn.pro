@@ -4,8 +4,8 @@ CONFIG -= app_bundle
 CONFIG -= qt
 
 SOURCES += main.c \
-    cfname.c
+    strcvt.c
 
 HEADERS += \
-    cfname.h
+    strcvt.h
 

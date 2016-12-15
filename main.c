@@ -32,7 +32,7 @@
 
 #include <dirent.h>
 
-#include "cfname.h"
+#include "strcvt.h"
 
 // Variables --------------------------------------------------------
 struct timeval t1;
@@ -71,7 +71,7 @@ int str_to_hexdump(char *str)
 	if (l < 1) {
 		return -1;
 	}
-	
+
 	for (i = 0; i < l; i++) {
 		if (((i % 8) == 0) && (i != 0)) {
 			printf(" \n");
@@ -83,74 +83,7 @@ int str_to_hexdump(char *str)
 	return 0;
 }
 
-int dir_work(char *dirname) 
-{
-	DIR *dp;
-	int dfd, ret;
-	struct dirent * de;
-	char fname[256], *nfname;
-	
-	nfname = 0;
-	
-	if (dirname == 0) {
-		printf("Bad directory name\n");
-		return -1;
-	}
-	
-	printf("\nWork with directories!\n\n");
-	
-	printf("Working directory = %s\n", dirname);
-	
-	dp = opendir(dirname);
-	
-	if (dp == 0) {
-		printf("Error opening dir: %s\n", strerror(errno));
-		return -1;	
-	}
-	
-	de = readdir(dp);
-	
-	while (de != 0) {
-		if (strcmp(de->d_name, ".") == 0) {
-			de = readdir(dp);
-			continue;
-		}
-		
-		if (strcmp(de->d_name, "..") == 0) {
-			de = readdir(dp);
-			continue;
-		}
-		
-		strcpy(fname, de->d_name);		
-		printf("Old name: %s\n", fname);
-		ret = prepare_new_file_name(fname, &nfname);
-		if (ret != 0) {
-			printf("Error getting new file name: %d\n", ret);
-			break;
-		}
-		
-		if (nfname == 0) {
-			printf("Error getting new file name\n");
-			break;
-		}
-		
-		printf("New name: %s\n\n", nfname);
-		
-		free(nfname);
-		
-		nfname = 0;
-		de = readdir(dp);
-		
-	}
-	
-	dfd = closedir(dp);
-	if (dfd < 0) {
-		printf("Error close dir: %s\n", strerror(errno));
-		return -1;
-	}
-	
-	return 0;
-}
+
 
 /*
  --------------------------------------------------------------------
@@ -173,135 +106,31 @@ int dir_work(char *dirname)
  --------------------------------------------------------------------
  */
 int main (int argc, char **argv)
-{
-	char * fname;
-	char *newfname;
-//	char * fname2 = 0;
-//	int ret;
-	
-//		dir_work(*(argv + 1));
-	
+{	
+//	char *str;
+	char new_fname[256];
+	int ret;
+
 	if (argc > 1) {
 
-		printf("\nFull path: %s\n", *(argv + 1));
-		fname = strrchr(*(argv + 1), '/');
-		if (fname != 0) {
-			fname++;
-			printf("Old file name: %s\n", fname);
-			newfname = prepare_new_file_name_v2(fname, 0);
+		sprintf(new_fname, "%s_1", *(argv + 1));
 
-			if (newfname == 0 && cfn_errno < 0) {
-				printf("Creating new file name failed: %d\n\n", cfn_errno);
-				return 0;
-			}
-			printf("\n");
+		ret = rename(*(argv + 1), new_fname);
 
+		if (ret != 0) {
+			printf("Rename file failed [%d]: %s\n", ret, strerror(errno));
 		}
-//			if (*fname == 0) {
-//				fname = *(argv + 1);
-//				dir_work(fname);
-//				return 0;
-//			}
-			
-//			printf("\nOld file name: %s\n", fname);
-//			gettimeofday(&t1, NULL);
-//			ret = prepare_new_file_name(fname, &fname2);
-//			gettimeofday(&t2, NULL);
-//			elapsed_time = get_elapsed_time(&t1,&t2);
-//			if (elapsed_time > 1.000) {
-//				printf("Elapsed time: %6.3f ms\n", elapsed_time);
-//			} else {
-//				printf("Elapsed time: %6.3f us\n", elapsed_time * 1000);
-//			}
 
-//			if (ret != 0) {
-//				printf("prepare_new_file_name(fname, &fname2) failed with error %d\n", ret);
-//			}
-//			printf("New file name: %s\n", fname2);
+//		printf("\ninput string: \n%s\n", *(argv + 1));
+//		printf("lenght: %d\n", (int)strlen(*(argv + 1)));
+
+//		str = convert_string(*(argv + 1));
+//		if (str == 0) {
+//			printf("Converting string failed: [%d] %s\n", cfn_errno, cfn_strerr(cfn_errno));
+//			return 0;
 //		}
+//		printf("\nconverted_string: %s\n", str);
+//		printf("lenght: %d\n", (int)strlen(str));
 	}
 	return 0;
 }
-
-///*
-// --------------------------------------------------------------------
-// Фильтруем строку
- 
-// Определим правило именования файлов. В имени файлов должны быть только
-// латинские строчные буквы a-z; цифры 0-9; и символы '_'. Точка должна
-// быть только одна для разделения расширения. В конце имени файла может
-// быть только одно нижнее подчёркивание, в начале не больше двух.
- 
-// --------------------------------------------------------------------
-// */
-//int str_filt(char *str)
-//{
-//	char *s, *se;
-//	int l;
-
-//	if (str == 0) {
-//		return -1;
-//	}
-	
-//	if (strlen(str) < 1) {
-//		return -1;
-//	}
-	
-//	// Меняем всякие левые символы на '_'
-//	s = str;
-//	while ((*s) != 0) {
-//		if ((isalnum(*s) == 0) && 
-//			(*s != '.') && (*s != '_')) {
-//			*s = '_';
-//		}
-//		*s = tolower(*s);
-//		s++;
-//	}
-	
-//	/* Заменим все точки символом нижнего подчёркивания. кроме последней, 
-//	 * которая разделяет расширение и имя файла.
-//	 */
-//	s = strchr(str, '.');
-//	se = strrchr(str, '.');
-
-//	while (s != 0 && s != se) {
-//		if (s == 0) break;
-//		*s = '_';
-//		s = strchr(s, '.');
-//	}
-//	printf("%s\n", str);
-//	// Уберём все следующие друг за другом символы нижнего подчёркивания
-//	s = strchr(str, '_');
-//	while (s != 0) {
-//		if (*(s + 1) == 0) {
-//			break;
-//		}
-//		if ((*(s + 1) == '_') || (*(s + 1) == '.')) {
-//			l = strlen(s + 1);
-//			memmove(s, s + 1, l + 1);
-//		}
-//		s = strchr(s + 1, '_');
-//	}
-
-//	return 0;
-//}
-//	char *cwd;
-	
-//	printf("Get current work dir name\n");
-//	cwd = getcwd(NULL, 0);
-	
-//	if (cwd == 0) {
-//		perror("getcwd");
-//		return -1;
-//	}
-	
-//	printf("cwd = %s\n", cwd);
-
-//dfd = dirfd(dp);
-
-//if (dfd < 0) {
-//	printf("Error getting dir desc: %s\n", strerror(errno));
-//	return 0;
-//}
-
-//printf("Dir descriptor: %d\n", dfd);
