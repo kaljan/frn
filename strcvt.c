@@ -323,7 +323,6 @@ char *convert_string(const char *str)
 const char no_error[] = "no error";
 const char bad_pointer_strerr[] = "input string pointer is NULL";
 const char bad_string_strerr[] = "lenght of input string NULL";
-
 const char unknown_error_strerr[] = "unknown error";
 
 const char * strcvt_strerr(int err)
