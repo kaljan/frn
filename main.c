@@ -32,9 +32,7 @@
 
 #include <dirent.h>
 
-#include "strcvt.h"
-
-#include "scv.h"
+extern int scvstr(char **str);
 
 // Variables --------------------------------------------------------
 struct timeval t1;
@@ -86,7 +84,6 @@ int str_to_hexdump(char *str)
 }
 
 
-
 /*
  --------------------------------------------------------------------
  Нужно сделать простенькую програмку, которая бы переименовывала файлы
@@ -113,38 +110,10 @@ int main (int argc, char **argv)
 	if (argc > 1) {
 		argv++;
 		str = *argv;
-		printf("input: %s\n", str);
-
+		printf("input : %s\n", str);
 		scvstr(&str);
-		printf("input: %s\n", str);
+		printf("output: %s\n", str);
 	}
 
-#if 0
-//	char *str;
-	char new_fname[256];
-	int ret;
-
-	if (argc > 1) {
-
-		sprintf(new_fname, "%s_1", *(argv + 1));
-
-		ret = rename(*(argv + 1), new_fname);
-
-		if (ret != 0) {
-			printf("Rename file failed [%d]: %s\n", ret, strerror(errno));
-		}
-
-//		printf("\ninput string: \n%s\n", *(argv + 1));
-//		printf("lenght: %d\n", (int)strlen(*(argv + 1)));
-
-//		str = convert_string(*(argv + 1));
-//		if (str == 0) {
-//			printf("Converting string failed: [%d] %s\n", cfn_errno, cfn_strerr(cfn_errno));
-//			return 0;
-//		}
-//		printf("\nconverted_string: %s\n", str);
-//		printf("lenght: %d\n", (int)strlen(str));
-	}
-#endif
 	return 0;
 }

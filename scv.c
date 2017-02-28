@@ -54,18 +54,6 @@ static inline void chktr(void)
 	}
 }
 
-
-static inline void chkstr(void)
-{
-	while (*strp != 0) {
-		if ((isalnum(*strp) == 0) &&
-			((*strp != '_') || (*strp != '.'))) {
-			wrngc++;
-		}
-		strp++;
-	}
-}
-
 const char *tr(uint16_t c)
 {
 	if (c == 0) {
@@ -122,8 +110,50 @@ static inline void trstr(void)
 
 			sprintf(tmpptr, "%s", tc);
 			tmpptr += l;
+		} else {
+			*tmpptr = *ustrp;
+			tmpptr++;
 		}
 		ustrp++;
+	}
+}
+
+static inline void chkstr(void)
+{
+	while (*strp != 0) {
+		if ((isalnum(*strp) == 0) &&
+			((*strp != '_') || (*strp != '.'))) {
+			wrngc++;
+		}
+		strp++;
+	}
+}
+
+static inline void fltstr(void)
+{
+	while (*strp != 0) {
+		if ((isalnum(*strp) == 0) &&
+			((*strp != '_') || (*strp != '.'))) {
+			*strp = '_';
+		} else {
+			*strp = tolower(*strp);
+		}
+		strp++;
+	}
+
+	if ((strp = strchr(hstr, '_')) != NULL) {
+		while (*strp != 0) {
+			if (*(strp + 1) == '_') {
+				memmove(strp, strp + 1, strlen(strp));
+				continue;
+			}
+			if (*(strp + 1) == '\0') {
+				*strp = '\0';
+				break;
+			}
+			strp++;
+			strp = strchr(strp, '_');
+		}
 	}
 }
 
@@ -144,14 +174,17 @@ int scvstr(char **str)
 		trstr();
 	}
 
+	printf("%s\n", hstr);
+
 	wrngc = 0;
 	strp = hstr;
 
 	chkstr();
 
-//	memset(hstr, 0, 256);
-//	strcpy(hstr, *ustrp);
-
+	if (wrngc > 0) {
+		strp = hstr;
+		fltstr();
+	}
 	*str = hstr;
 
 	return 0;
