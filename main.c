@@ -107,9 +107,22 @@ int str_to_hexdump(char *str)
 int main (int argc, char **argv)
 {
 	char *str;
+	struct stat st;
+	int ret;
+
 	if (argc > 1) {
 		argv++;
 		str = *argv;
+
+		if ((ret = stat(str, &st)) != 0) {
+			printf("Stat file failed: %s\n", strerror(errno));
+			return 0;
+		}
+
+
+
+		return 0;
+
 		printf("input : %s\n", str);
 		scvstr(&str);
 		printf("output: %s\n", str);
