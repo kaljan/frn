@@ -129,9 +129,10 @@ static inline void chkstr(void)
 static inline void fltstr(void)
 {
 	while (*strp != 0) {
-		if ((isalnum(*strp) == 0) &&
-			((*strp != '_') || (*strp != '.'))) {
-			*strp = '_';
+		if ((isalnum(*strp) == 0)) {
+			if (*strp != '.') {
+				*strp = '_';
+			}
 		} else {
 			*strp = tolower(*strp);
 		}
@@ -140,6 +141,7 @@ static inline void fltstr(void)
 
 	if ((strp = strchr(hstr, '_')) != NULL) {
 		while (*strp != 0) {
+
 			if (*(strp + 1) == '_') {
 				memmove(strp, strp + 1, strlen(strp));
 				continue;
@@ -150,6 +152,9 @@ static inline void fltstr(void)
 			}
 			strp++;
 			strp = strchr(strp, '_');
+			if (strp == 0) {
+				break;
+			}
 		}
 	}
 }
@@ -182,6 +187,7 @@ int scvstr(char **str)
 		strp = hstr;
 		fltstr();
 	}
+
 	*str = hstr;
 
 	return 0;

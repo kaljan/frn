@@ -33,6 +33,7 @@
 #include <dirent.h>
 
 extern int scvstr(char **str);
+extern int sdir(char *path);
 
 // Variables --------------------------------------------------------
 struct timeval t1;
@@ -113,6 +114,9 @@ int main (int argc, char **argv)
 	if (argc > 1) {
 		argv++;
 		str = *argv;
+
+		return sdir(str);
+
 
 		if ((ret = stat(str, &st)) != 0) {
 			printf("Stat file failed: %s\n", strerror(errno));
